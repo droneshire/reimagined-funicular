@@ -31,13 +31,20 @@ def parse_itenerary_day(lines: T.List[str]) -> T.List[T.Tuple[str, str]]:
         try:
             activity_type, place = line.split(":")
         except ValueError:
+            print(f"Could not parse line: {line}")
+            continue
+
+        try:
             activity_type, place = line.split("at")
+        except ValueError:
+            print(f"Could not parse line: {line}")
+            continue
 
         # sometimes the activity type is prefixed with a number
         try:
             activity_type = activity_type.split()[1]
         except IndexError:
-            pass
+            print(f"Could not parse activity type: {activity_type}")
 
         # remove any `(*)` in the place name
         try:
@@ -61,6 +68,8 @@ def parse_itenerary_content(content: str) -> T.List[T.Dict[str, str]]:
         day_number = lines[0].split(" ")[1]
         day_plan = parse_itenerary_day(lines[1:])
         for activity_type, place in day_plan:
-            data.append({"Day": day_number, "Activity Type": activity_type, "Place": place})
+            data.append(
+                {"Day": day_number, "Activity Type": activity_type, "Place": place}
+            )
 
     return data

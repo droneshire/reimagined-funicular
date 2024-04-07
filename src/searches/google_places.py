@@ -104,9 +104,7 @@ class GoogleMapsAPI:
         self.base_url = "https://maps.googleapis.com/maps/api"
         self.verbose = verbose
 
-    def find_place_from_location(
-        self, place: str, location: Coordinates
-    ) -> T.Dict[T.Any, T.Any]:
+    def find_place_from_location(self, place: str, location: Coordinates) -> T.Dict[T.Any, T.Any]:
         location_string = f"{location['latitude']},{location['longitude']}"
         params = {
             "input": place,
@@ -203,9 +201,7 @@ class GooglePlacesAPI:
 
         headers = copy.deepcopy(self.HEADERS)
 
-        headers["X-Goog-FieldMask"] = (
-            ",".join(fields) if fields else self.DEFAULT_FIELDS
-        )
+        headers["X-Goog-FieldMask"] = ",".join(fields) if fields else self.DEFAULT_FIELDS
 
         url = os.path.join(self.base_url, "places:searchText")
 
@@ -219,9 +215,7 @@ class GooglePlacesAPI:
 
         headers = copy.deepcopy(self.HEADERS)
 
-        headers["X-Goog-FieldMask"] = (
-            ",".join(fields) if fields else self.DEFAULT_FIELDS
-        )
+        headers["X-Goog-FieldMask"] = ",".join(fields) if fields else self.DEFAULT_FIELDS
 
         url = os.path.join(self.base_url, "places/{place_id}")
 
@@ -242,9 +236,7 @@ class GooglePlacesAPI:
         radius_meters = min(radius_miles * 1609.34, 50000.0)
 
         if self.verbose:
-            print(
-                f"Searching for {query} within {radius_miles} miles of {latitude}, {longitude}"
-            )
+            print(f"Searching for {query} within {radius_miles} miles of {latitude}, {longitude}")
         json_data: T.Dict[str, T.Any] = {
             "locationBias": {
                 "circle": {
@@ -272,9 +264,7 @@ class GooglePlacesAPI:
 
         while viewpoint_width_meters < self.MAX_VIEWPOINT_WIDTH_METERS:
             if self.verbose:
-                print(
-                    f"Searching for {query} with viewpoint width {viewpoint_width_meters} meters"
-                )
+                print(f"Searching for {query} with viewpoint width {viewpoint_width_meters} meters")
             rect_viewpoint = get_viewport(latitude, longitude, viewpoint_width_meters)
             data = {"locationRestriction": {"rectangle": rect_viewpoint}}
             results = self.text_search(query, fields, data)

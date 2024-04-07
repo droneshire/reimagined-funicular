@@ -73,8 +73,8 @@ TYPES = [
 
 def call_api(
     url: str,
-    headers: T.Optional[T.Dict[str, str]] = None,
-    params: T.Optional[T.Dict[str, str]] = None,
+    headers: T.Optional[T.Dict[str, T.Any]] = None,
+    params: T.Optional[T.Dict[str, T.Any]] = None,
     json_data: T.Optional[T.Dict[str, T.Any]] = None,
     timeout: float = 10.0,
 ) -> T.Dict[T.Any, T.Any]:
@@ -104,7 +104,9 @@ class GoogleMapsAPI:
         self.base_url = "https://maps.googleapis.com/maps/api"
         self.verbose = verbose
 
-    def find_place_from_location(self, place: str, location: Coordinates) -> T.Dict[T.Any, T.Any]:
+    def find_place_from_location(
+        self, place: str, location: Coordinates
+    ) -> T.Dict[T.Any, T.Any]:
         location_string = f"{location['latitude']},{location['longitude']}"
         params = {
             "input": place,
@@ -114,7 +116,7 @@ class GoogleMapsAPI:
             "key": self.api_key,
         }
 
-        url = os.path.join(self.base_url_maps, "place", "findplacefromtext", "json")
+        url = os.path.join(self.base_url, "place", "findplacefromtext", "json")
 
         if self.verbose:
             print(f"Searching for {place} at {location_string}")
@@ -139,7 +141,7 @@ class GoogleMapsAPI:
             "key": self.api_key,
         }
 
-        url = os.path.join(self.base_url_maps, "place", "nearbysearch", "json")
+        url = os.path.join(self.base_url, "place", "nearbysearch", "json")
 
         if self.verbose:
             print(f"Searching for {keyword} at {location_string}")
@@ -157,7 +159,7 @@ class GoogleMapsAPI:
             "key": self.api_key,
         }
 
-        url = os.path.join(self.base_url_maps, "place", "details", "json")
+        url = os.path.join(self.base_url, "place", "details", "json")
 
         if self.verbose:
             print(f"Getting details for {place_id}")
@@ -179,8 +181,7 @@ class GooglePlacesAPI:
     def __init__(self, api_key: str, verbose: bool = False) -> None:
         self.api_key = api_key
         self.HEADERS["X-Goog-Api-Key"] = api_key
-        self.base_url_places = "https://places.googleapis.com/v1"
-        self.base_url_maps = "https://maps.googleapis.com/maps/api"
+        self.base_url = "https://places.googleapis.com/v1"
         self.verbose = verbose
 
     def text_search(
@@ -202,11 +203,13 @@ class GooglePlacesAPI:
 
         headers = copy.deepcopy(self.HEADERS)
 
-        headers["X-Goog-FieldMask"] = ",".join(fields) if fields else self.DEFAULT_FIELDS
+        headers["X-Goog-FieldMask"] = (
+            ",".join(fields) if fields else self.DEFAULT_FIELDS
+        )
 
         url = os.path.join(self.base_url, "places:searchText")
 
-        call_api(url, headers, json_data)
+        return call_api(url, headers, json_data)
 
     def find_nearby_places_from_place_id(
         self, place_id: str, fields: T.Optional[T.List[str]] = None
@@ -216,15 +219,16 @@ class GooglePlacesAPI:
 
         headers = copy.deepcopy(self.HEADERS)
 
-        headers["X-Goog-FieldMask"] = ",".join(fields) if fields else self.DEFAULT_FIELDS
+        headers["X-Goog-FieldMask"] = (
+            ",".join(fields) if fields else self.DEFAULT_FIELDS
+        )
 
-        url = os.path.join(self.base_url_places, "places/{place_id}")
+        url = os.path.join(self.base_url, "places/{place_id}")
 
         if self.verbose:
             print(f"Searching for nearby places from {place_id}")
-            print(f"Data: {json.dumps(json_data, indent=2)}")
 
-        return call_api(url, headers=headers, json_data=json_data)
+        return call_api(url, headers=headers)
 
     def search_location_radius(
         self,
@@ -238,7 +242,9 @@ class GooglePlacesAPI:
         radius_meters = min(radius_miles * 1609.34, 50000.0)
 
         if self.verbose:
-            print(f"Searching for {query} within {radius_miles} miles of {latitude}, {longitude}")
+            print(
+                f"Searching for {query} within {radius_miles} miles of {latitude}, {longitude}"
+            )
         json_data: T.Dict[str, T.Any] = {
             "locationBias": {
                 "circle": {
@@ -266,7 +272,9 @@ class GooglePlacesAPI:
 
         while viewpoint_width_meters < self.MAX_VIEWPOINT_WIDTH_METERS:
             if self.verbose:
-                print(f"Searching for {query} with viewpoint width {viewpoint_width_meters} meters")
+                print(
+                    f"Searching for {query} with viewpoint width {viewpoint_width_meters} meters"
+                )
             rect_viewpoint = get_viewport(latitude, longitude, viewpoint_width_meters)
             data = {"locationRestriction": {"rectangle": rect_viewpoint}}
             results = self.text_search(query, fields, data)

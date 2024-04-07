@@ -35,9 +35,8 @@ init: create_dirs
 	fi
 	@echo "\033[0;32mRun 'source $(PY_VENV_REL_PATH)/bin/activate' to activate the virtual environment\033[0m"
 
-install: types_clean
+install:
 	$(PIP) install -r requirements.txt
-	$(MAKE) types_build
 
 format: isort
 	$(BLACK_CMD)
@@ -62,7 +61,7 @@ lint: check_format mypy pylint
 test:
 	$(RUN_COVERAGE_PY) unittest discover -s test -p *_test.py -v
 
-clean: types_clean
+clean:
 	rm -rf $(PY_VENV)
 
 ### Scripts

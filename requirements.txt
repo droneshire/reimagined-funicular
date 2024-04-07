@@ -57,6 +57,8 @@ tomlkit==0.12.4
 tornado==6.4
 tqdm==4.66.2
 traitlets==5.14.2
+types-requests==2.31.0.20240406
 typing_extensions==4.11.0
 tzdata==2024.1
+urllib3==2.2.1
 wcwidth==0.2.13

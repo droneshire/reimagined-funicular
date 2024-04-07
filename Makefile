@@ -61,6 +61,9 @@ lint: check_format mypy pylint
 test:
 	$(RUN_COVERAGE_PY) unittest discover -s test -p *_test.py -v
 
+notebook_clean:
+	find . -name '*.ipynb' -exec nb-clean clean {} \;
+
 clean:
 	rm -rf $(PY_VENV)
 

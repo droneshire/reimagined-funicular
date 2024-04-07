@@ -1,11 +1,14 @@
 import typing as T
+import re
 
 import nltk
 from nltk.corpus import stopwords
+from nltk.tag import pos_tag
 from nltk.tokenize import word_tokenize
 
-nltk.download("stopwords")
+nltk.download("averaged_perceptron_tagger")
 nltk.download("punkt")
+nltk.download("stopwords")
 
 
 def clean_text(text):
@@ -26,35 +29,18 @@ def clean_text(text):
 
 def parse_itenerary_day(lines: T.List[str]) -> T.List[T.Tuple[str, str]]:
     day_plan = []
+    # This pattern is designed to capture two groups separated by various delimiters
+    pattern = re.compile(r"\s*([\w\s]+?)\s*(?::|at|-)\s*([\w\s'&]+)")
+
     for line in lines:
-        # sometimes divided by `:` and sometimes by `at`
-        try:
-            activity_type, place = line.split(":")
-        except ValueError:
+        match = pattern.match(line)
+        if match:
+            activity_type, place = match.groups()
+            activity_type = activity_type.strip()
+            place = place.split("(")[0].strip()  # Removes anything within parentheses
+            day_plan.append((activity_type, place))
+        else:
             print(f"Could not parse line: {line}")
-            continue
-
-        try:
-            activity_type, place = line.split("at")
-        except ValueError:
-            print(f"Could not parse line: {line}")
-            continue
-
-        # sometimes the activity type is prefixed with a number
-        try:
-            activity_type = activity_type.split()[1]
-        except IndexError:
-            print(f"Could not parse activity type: {activity_type}")
-
-        # remove any `(*)` in the place name
-        try:
-            place = place.split("(")[0]
-        except IndexError:
-            pass
-
-        activity_type = activity_type.strip()
-        place = place.strip()
-        day_plan.append((activity_type, place))
 
     return day_plan
 

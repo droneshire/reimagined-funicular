@@ -60,6 +60,14 @@ def extract_city(address: str) -> T.Optional[str]:
     return city
 
 
+def meters_to_miles(meters: float) -> float:
+    return meters / METERS_PER_MILE
+
+
+def miles_to_meters(miles: float) -> float:
+    return miles * METERS_PER_MILE
+
+
 def get_city_center_coordinates(city_name: str) -> T.Optional[T.Tuple[float, float]]:
     geolocator = Nominatim(user_agent="tgtg")
 
@@ -81,7 +89,9 @@ def meters_to_degrees_longitude(meters: float, latitude: float) -> float:
     earth_radius_meters = 6378137.0
     radians_latitude = math.radians(latitude)
     # Calculate the radius of a circle at the given latitude
-    meters_per_degree = math.cos(radians_latitude) * math.pi * earth_radius_meters / 180.0
+    meters_per_degree = (
+        math.cos(radians_latitude) * math.pi * earth_radius_meters / 180.0
+    )
     return meters / meters_per_degree
 
 
@@ -95,7 +105,9 @@ def meters_to_degress(meters: float, center_lat: float) -> T.Tuple[float, float]
     return lat_adjustment, lon_adjustment
 
 
-def get_viewport(center_lat: float, center_lon: float, radius_meters: float) -> Viewport:
+def get_viewport(
+    center_lat: float, center_lon: float, radius_meters: float
+) -> Viewport:
     """
     Given a center (lat, lon) and radius in meters, calculate a viewport.
     Where the low is the bottom left corner and the high is the top right corner.

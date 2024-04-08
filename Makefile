@@ -69,4 +69,4 @@ clean:
 
 ### Scripts
 
-.PHONY: init install format check_format mypy pylint autopep8 isort lint test clean
+.PHONY: init install format check_format mypy pylint autopep8 isort lint test notebook_clean clean 

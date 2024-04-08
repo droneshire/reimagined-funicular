@@ -64,6 +64,10 @@ test:
 notebook_clean:
 	find . -name '*.ipynb' -exec nb-clean clean {} \;
 
+upgrade: install
+	pip install --upgrade $$(pip freeze | awk '{split($$0, a, "=="); print a[1]}')
+	pip freeze > requirements.txt
+
 clean:
 	rm -rf $(PY_VENV)
 

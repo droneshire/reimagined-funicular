@@ -6,7 +6,7 @@ Upwork client project - OpenAI and Google Places API project
 
 This project is a collaboration between OpenAI and Google Places API to create a tool that generates travel itineraries based on user input. The tool will use OpenAI's GPT-3 to generate the itinerary and Google Places API to provide the relevant information for each location. The goal is to create a user-friendly interface that allows users to input their travel preferences and receive a detailed itinerary with recommendations for accommodations, activities, and dining options.
 
-#### Variables
+#### Input Variables for Prompt
 
 - Location: `South Beach Miami, FL (google places location)`
 - Number of People: `6`
@@ -58,5 +58,13 @@ The Google Places API calls were the main source of concern. The API calls were 
 3. Use the Google Places API to get nearby places for each location. This is a more efficient way to get the information needed for each place, as it reduces the number of API calls needed.
 
 ### Notebooks
+
+To setup the notebook, add an `.env` file into the root of the repository. The `.env` file should contain the following variables/secrets:
+
+```
+GOOGLE_PLACES_API_KEY=<REDACTED>
+OPEN_AI_API_KEY=<REDACTED>
+MAPBOX_API_KEY=<REDACTED>
+```
 
 The notebooks that start with `original*` are the client's original notebooks, and the `experiments.ipynb` is the work product for this project. 

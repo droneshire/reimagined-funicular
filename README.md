@@ -23,6 +23,28 @@ The above would become a prompt:
 Create an itinerary and provide only the names for places listed in google places for breakfast, morning activity, lunch, afternoon activity, dinner and evening activity (return only the day and the name): A “3” day “bachelorette party” to “South Beach Miami, FL” for “6” people in “November 2026” that enjoy “Include high-end boutique hotel options (must be 4 stars or higher) with onsite spa, beach clubs with DJs during the day, and high end nightclubs. List at least six restaurant options for dinner That include at least one nice steakhouse and one nice sushi restaurant.”
 ```
 
+## Setup
+
+To setup the notebook, add an `.env` file into the root of the repository. The `.env` file should contain the following variables/secrets:
+
+```
+GOOGLE_PLACES_API_KEY=<REDACTED>
+OPEN_AI_API_KEY=<REDACTED>
+MAPBOX_API_KEY=<REDACTED>
+```
+
+After the `.env` is setup, run the following to setup the virtual environment:
+
+```
+make init
+source ./venv/bin/activate
+make install
+```
+
+## Notebooks
+
+The notebooks that start with `original*` are the client's original notebooks, and the `experiments.ipynb` is the work product for this project.
+
 ## Current Implementation
 
 The current implementation does the following:
@@ -56,25 +78,3 @@ The Google Places API calls were the main source of concern. The API calls were 
 2. Use free geocode libraries to get city coordinates instead of use Google Maps API. This is a one-time call per location, so it's not a huge cost, but it's still a cost.
 
 3. Use the Google Places API to get nearby places for each location. This is a more efficient way to get the information needed for each place, as it reduces the number of API calls needed.
-
-### Setup
-
-To setup the notebook, add an `.env` file into the root of the repository. The `.env` file should contain the following variables/secrets:
-
-```
-GOOGLE_PLACES_API_KEY=<REDACTED>
-OPEN_AI_API_KEY=<REDACTED>
-MAPBOX_API_KEY=<REDACTED>
-```
-After the `.env` is setup, run the following to setup the virtual environment:
-
-```
-make init
-source ./venv/bin/activate
-make install
-```
-
-### Notebooks
-
-
-The notebooks that start with `original*` are the client's original notebooks, and the `experiments.ipynb` is the work product for this project. 

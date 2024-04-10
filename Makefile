@@ -3,15 +3,11 @@ PIP ?= pip3
 
 
 # Core paths
-BUILD_PATH=$(PWD)/build
 LOG_PATH=$(PWD)/logs
 SOURCE_PATH=$(PWD)/src
 PY_VENV=$(PWD)/venv
 
-PB_PY_PATH=$(BUILD_PATH)/pb_types
-PY_TYPES_PATH=$(BUILD_PATH)/py_types
-
-PY_PATH=$(SOURCE_PATH):$(BUILD_PATH)
+PY_PATH=$(SOURCE_PATH)
 
 RUN_PY = PYTHONPATH=$(PY_PATH) $(PYTHON) -m
 RUN_COVERAGE_PY = PYTHONPATH=$(PY_PATH) coverage run -m
@@ -19,8 +15,7 @@ BLACK_CMD = $(RUN_PY) black --line-length 100 .
 
 # NOTE: exclude any virtual environment subdirectories here
 PY_VENV_REL_PATH=$(subst $(PWD)/,,$(PY_VENV))
-PY_BUILD_REL_PATH=$(subst $(PWD)/,,$(BUILD_PATH))
-PY_FIND_COMMAND = find . -name '*.py' | grep -vE "($(PY_VENV_REL_PATH)|$(PY_BUILD_REL_PATH))"
+PY_FIND_COMMAND = find . -name '*.py' | grep -vE "$(PY_VENV_REL_PATH)"
 MYPY_CONFIG=$(SOURCE_PATH)/mypy_config.ini
 
 create_dirs:
@@ -73,4 +68,4 @@ clean:
 
 ### Scripts
 
-.PHONY: init install format check_format mypy pylint autopep8 isort lint test notebook_clean clean 
+.PHONY: init install format check_format mypy pylint autopep8 isort lint test notebook_clean upgrade clean

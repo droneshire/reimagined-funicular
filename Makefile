@@ -5,6 +5,7 @@ PIP ?= pip3
 # Core paths
 LOG_PATH=$(PWD)/logs
 SOURCE_PATH=$(PWD)/src
+NOTEBOOK_PATH=$(PWD)/notebooks
 PY_VENV=$(PWD)/venv
 
 PY_PATH=$(SOURCE_PATH)
@@ -12,6 +13,7 @@ PY_PATH=$(SOURCE_PATH)
 RUN_PY = PYTHONPATH=$(PY_PATH) $(PYTHON) -m
 RUN_COVERAGE_PY = PYTHONPATH=$(PY_PATH) coverage run -m
 BLACK_CMD = $(RUN_PY) black --line-length 100 .
+NOTEBOOK_BLACK_CMD = $(RUN_PY) black --line-length 100 $(NOTEBOOK_PATH)/*
 
 # NOTE: exclude any virtual environment subdirectories here
 PY_VENV_REL_PATH=$(subst $(PWD)/,,$(PY_VENV))
@@ -34,9 +36,11 @@ install:
 
 format: isort
 	$(BLACK_CMD)
+	$(NOTEBOOK_BLACK_CMD)
 
 check_format:
 	$(BLACK_CMD) --check --diff
+	$(NOTEBOOK_BLACK_CMD) --check --diff
 
 mypy:
 	$(RUN_PY) mypy $(shell $(PY_FIND_COMMAND)) --config-file $(MYPY_CONFIG) --no-namespace-packages

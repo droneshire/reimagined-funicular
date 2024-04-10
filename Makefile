@@ -19,7 +19,6 @@ PY_FIND_COMMAND = find . -name '*.py' | grep -vE "$(PY_VENV_REL_PATH)"
 MYPY_CONFIG=$(SOURCE_PATH)/mypy_config.ini
 
 create_dirs:
-	mkdir -p $(BUILD_PATH)
 	mkdir -p $(LOG_PATH)
 
 init: create_dirs

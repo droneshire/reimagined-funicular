@@ -19,7 +19,8 @@ class Itinerary(BaseModel):
     )
     location: T.List[str] = Field(
         description=(
-            "a list of the location that existis in google places of the corresponding activity type"
+            "a list of the location that existis in "
+            "google places of the corresponding activity type"
         )
     )
     description: T.List[str] = Field(

@@ -5,7 +5,7 @@ from langchain.prompts import PromptTemplate
 from langchain_community.utils.openai_functions import convert_pydantic_to_openai_function
 from langchain_core.pydantic_v1 import BaseModel
 from langchain_openai import ChatOpenAI
-from openai import OpenAI
+from pydantic.v1.types import SecretStr
 
 from llm.utils import calculate_tokens
 
@@ -13,7 +13,7 @@ from llm.utils import calculate_tokens
 class OpenAiSearch:
     MODEL = "gpt-3.5-turbo-0125"
 
-    def __init__(self, api_key: str, verbose: bool = False):
+    def __init__(self, api_key: SecretStr, verbose: bool = False):
         self.parser = JsonOutputFunctionsParser()
         self.api_key = api_key
         self.verbose = verbose
@@ -23,7 +23,7 @@ class OpenAiSearch:
         inputs: T.Dict[str, str],
         prompt: PromptTemplate,
         model_function: type[BaseModel],
-    ) -> T.Dict[str, str]:
+    ) -> T.Any:
         model = ChatOpenAI(api_key=self.api_key, temperature=0, model=self.MODEL)
 
         openai_functions = [convert_pydantic_to_openai_function(model_function)]

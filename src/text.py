@@ -1,5 +1,3 @@
-import re
-import typing as T
 from string import punctuation
 
 
@@ -13,6 +11,3 @@ def clean_text(text: str) -> str:
     text = text.replace("\n", " ")
     text = text.translate(str.maketrans("", "", punctuation))
     return text
-
-
-

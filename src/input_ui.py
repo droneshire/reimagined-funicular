@@ -58,6 +58,7 @@ class SimpleInputForm:
         submit_button.grid(row=6, column=1, sticky="ew", pady=10)
 
     def on_submit(self) -> None:
+        # pylint: disable=too-many-boolean-expressions
         if (
             self.location_entry is None
             or self.adults_spinbox is None

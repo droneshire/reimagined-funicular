@@ -1,4 +1,6 @@
 import argparse
+import os
+import typing as T
 
 import dotenv
 
@@ -7,8 +9,8 @@ dotenv.load_dotenv()
 
 def get_secrets() -> T.Dict[str, str]:
     secrets = {
-        "google_api_key": os.getenv("GOOGLE_API_KEY"),
-        "openai_api_key": os.getenv("OPENAI_API_KEY"),
+        "google_api_key": os.getenv("GOOGLE_API_KEY", ""),
+        "openai_api_key": os.getenv("OPENAI_API_KEY", ""),
     }
     return secrets
 

@@ -1,7 +1,7 @@
 import re
 import typing as T
 
-from llm.search import ACTIVITY_TYPE_COLUMN, DAY_COLUMN, LOCATION_COLUMN
+from llm.defs import ACTIVITY_TYPE_COLUMN, DAY_COLUMN, LOCATION_COLUMN
 
 
 class Itinerary:

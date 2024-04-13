@@ -22,7 +22,7 @@ class OpenAiSearch:
         self,
         inputs: T.Dict[str, str],
         prompt: PromptTemplate,
-        model_function: BaseModel,
+        model_function: type[BaseModel],
     ) -> T.Dict[str, str]:
         model = ChatOpenAI(api_key=self.api_key, temperature=0, model=self.MODEL)
 
@@ -33,6 +33,9 @@ class OpenAiSearch:
 
         if self.verbose:
             print(output)
+
+        if not output:
+            raise ValueError("No output was generated")
 
         return output
 

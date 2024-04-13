@@ -7,8 +7,7 @@ import googlemaps
 import pandas as pd
 
 from constants import DEFAULT_FIELDS
-from google.utils import DEFAULT_TYPE, TYPES
-from google.utils import get_city_center_coordinates
+from google.utils import DEFAULT_TYPE, TYPES, get_city_center_coordinates
 from llm.defs import LOCATION_COLUMN
 
 

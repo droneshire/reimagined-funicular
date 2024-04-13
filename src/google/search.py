@@ -6,7 +6,9 @@ from threading import Lock
 import googlemaps
 import pandas as pd
 
-from google.utils import DEFAULT_TYPE, TYPES, get_city_center_coordinates
+from constants import DEFAULT_FIELDS
+from google.utils import DEFAULT_TYPE, TYPES
+from google.utils import get_city_center_coordinates
 from llm.defs import LOCATION_COLUMN
 
 
@@ -23,7 +25,7 @@ class SearchPlaces:
     @staticmethod
     def _get_place_details(
         gmaps: googlemaps.Client,
-        row: pd.Series,
+        place_name: str,
         city_coordinates: T.Tuple[float, float],
         store_type: T.Optional[str],
         keyword: T.Optional[str],
@@ -31,26 +33,27 @@ class SearchPlaces:
         itinerary_place_details: T.List[T.Tuple[str, T.Dict[str, T.Any]]],
         nearby_place_details: T.Dict[str, T.List[T.Dict[str, T.Any]]],
         lock: threading.Lock,
-    ) -> T.Optional[None]:
+    ) -> None:
         try:
-            result = gmaps.places(query=row[LOCATION_COLUMN], location=city_coordinates)
+            result = gmaps.places(
+                query=place_name, location=city_coordinates, fields=DEFAULT_FIELDS
+            )
         except:  # pylint: disable=bare-except
-            print(f"Unable to get places info for {row[LOCATION_COLUMN]}")
-            return None
+            print(f"Unable to get places info for {place_name}")
+            return
 
         if not result or result.get("status") != "OK":
-            print(f"Unable to get places info for {row[LOCATION_COLUMN]}")
-            return None
+            print(f"Unable to get places info for {place_name}")
+            return
 
         place_result = result["results"][0]
         with lock:
-            itinerary_place_details.append((row[LOCATION_COLUMN], place_result))
+            itinerary_place_details.append((place_name, place_result))
 
         store_type = store_type if store_type else place_result.get("types", [DEFAULT_TYPE])[0]
 
         print(
-            f"Getting nearby places for {row[LOCATION_COLUMN]} at "
-            f"{place_result['geometry']['location']}"
+            f"Getting nearby places for {place_name} at " f"{place_result['geometry']['location']}"
         )
         try:
             nearby_places = gmaps.places_nearby(
@@ -60,18 +63,17 @@ class SearchPlaces:
                 type=store_type,
             )
         except:  # pylint: disable=bare-except
-            print(f"Unable to get nearby places info for {row[LOCATION_COLUMN]}")
-            return None
+            print(f"Unable to get nearby places info for {place_name}")
+            return
 
         if not nearby_places or nearby_places.get("status") != "OK":
-            print(f"Unable to get nearby places info for {row[LOCATION_COLUMN]}")
-            return None
+            print(f"Unable to get nearby places info for {place_name}")
+            return
 
         with lock:
-            nearby_place_details[row[LOCATION_COLUMN]] = nearby_places["results"]
+            nearby_place_details[place_name] = nearby_places["results"]
 
-        print(f"Found {len(nearby_places['results'])} nearby places for {row[LOCATION_COLUMN]}")
-        return None
+        print(f"Found {len(nearby_places['results'])} nearby places for {place_name}")
 
     def search(
         self,
@@ -102,7 +104,7 @@ class SearchPlaces:
                 executor.submit(
                     self._get_place_details,
                     self.gmaps,
-                    row,
+                    row[LOCATION_COLUMN],
                     city_coordinates,
                     store_type,
                     keyword,

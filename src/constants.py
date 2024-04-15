@@ -1,5 +1,6 @@
 # Fields to be returned by detailed search
 DEFAULT_FIELDS = [
+    "places.id",
     "places.formattedAddress",
     "places.displayName",
     "places.location",
@@ -10,6 +11,7 @@ DEFAULT_FIELDS = [
     "places.priceLevel",
     "places.userRatingCount",
     "places.primaryType",
+    "places.types",
     "places.editorialSummary",
     "places.goodForChildren",
 ]

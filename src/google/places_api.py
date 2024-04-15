@@ -153,9 +153,16 @@ class GooglePlacesAPI:
 
         return call_api(url, headers, json_data)
 
-    def find_nearby_places_from_place_id(
-        self, place_id: str, fields: T.Optional[T.List[str]] = None
+    def nearby_places(
+        self,
+        latitude: float,
+        longitude: float,
+        radius_meters: float,
+        fields: T.Optional[T.List[str]] = None,
+        data: T.Optional[T.Dict[str, T.Any]] = None,
     ) -> T.Dict[T.Any, T.Any]:
+        radius_meters = min(radius_meters, 50000.0)
+
         if fields is None:
             fields = DEFAULT_FIELDS
 
@@ -163,26 +170,44 @@ class GooglePlacesAPI:
 
         headers["X-Goog-FieldMask"] = ",".join(fields) if fields else self.BASIC_FIELDS
 
-        url = os.path.join(self.base_url, "places/{place_id}")
+        json_data: T.Dict[str, T.Any] = {
+            "locationRestriction": {
+                "circle": {
+                    "center": {"latitude": latitude, "longitude": longitude},
+                    "radius": radius_meters,
+                }
+            },
+        }
+
+        if data:
+            json_data.update(data)
+
+        url = os.path.join(self.base_url, "places:searchNearby")
 
         if self.verbose:
-            print(f"Searching for nearby places from {place_id}")
+            print(
+                f"Searching for nearby places to {latitude}, {longitude} "
+                f"within {radius_meters} meters"
+            )
+        if self.verbose:
+            print(f"{json.dumps(json_data, indent=2)}")
 
-        return call_api(url, headers=headers)
+        return call_api(url, json_data=json_data, headers=headers)
 
     def search_location_radius(
         self,
         latitude: float,
         longitude: float,
-        radius_miles: float,
+        radius_meters: float,
         query: str,
         fields: T.Optional[T.List[str]] = None,
         included_type: T.Optional[str] = None,
+        data: T.Optional[T.Dict[str, T.Any]] = None,
     ) -> T.Dict[T.Any, T.Any]:
-        radius_meters = min(radius_miles * 1609.34, 50000.0)
+        radius_meters = min(radius_meters, 50000.0)
 
         if self.verbose:
-            print(f"Searching for {query} within {radius_miles} miles of {latitude}, {longitude}")
+            print(f"Searching for {query} within {radius_meters} meters of {latitude}, {longitude}")
         json_data: T.Dict[str, T.Any] = {
             "locationBias": {
                 "circle": {
@@ -191,6 +216,9 @@ class GooglePlacesAPI:
                 }
             },
         }
+
+        if data:
+            json_data.update(data)
 
         if included_type is not None:
             json_data["includedType"] = included_type

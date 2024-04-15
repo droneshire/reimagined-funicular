@@ -6,9 +6,9 @@ from threading import Lock
 import googlemaps
 
 from constants import DEFAULT_FIELDS, MIN_RATING, MIN_RATING_COUNT
-from google.places_api import GoogleMapsAPI, GooglePlacesAPI
-from google.utils import DEFAULT_TYPE, Coordinates, get_city_center_coordinates
-from llm.defs import LOCATION_COLUMN
+from google.places_api import GooglePlacesAPI
+from google.utils import Coordinates, get_city_center_coordinates
+from llm.defs import LOCATION_COLUMN, DESCRIPTION_COLUMN, ACTIVITY_TYPE_COLUMN
 
 ItineraryPlaceDetailsType = T.List[T.Tuple[str, T.Dict[str, T.List[T.Any]]]]
 NearbyPlaceDetailsType = T.Dict[str, T.List[T.Dict[str, T.Any]]]
@@ -17,25 +17,51 @@ NearbyPlaceDetailsType = T.Dict[str, T.List[T.Dict[str, T.Any]]]
 class SearchPlaces:
 
     def __init__(self, api_key: str, verbose: bool = False):
-        self.gmaps = googlemaps.Client(key=api_key)
-        self.gmaps_api = GoogleMapsAPI(api_key, verbose)
-        self.gplaces_api = GooglePlacesAPI(api_key, verbose)
+        self.api_key = api_key
+        self.gmaps_lib = googlemaps.Client(key=api_key)
         self.verbose = verbose
         self.itinerary_place_details: ItineraryPlaceDetailsType = []
         self.nearby_place_details: NearbyPlaceDetailsType = {}
-        self.total_api_calls = 0
+        self.total_api_calls = {
+            "places": 0,
+            "maps": 0,
+        }
 
         self.lock = Lock()
 
     @staticmethod
-    def is_acceptable_location(original: T.Dict[str, T.Any], details: T.Dict[str, T.Any]) -> bool:
-        return (
-            float(details["rating"]) > MIN_RATING
-            and int(details["user_ratings_total"]) > MIN_RATING_COUNT
-            and details["business_status"] == "OPERATIONAL"
-            and details.get("types", ["New"])[0] == original.get("types", ["Original"])[0]
-            and details.get("place_id") != original.get("place_id")
-        )
+    def is_acceptable_location(
+        original: T.Dict[str, T.Any], proposed: T.Dict[str, T.Any], verbose: bool = False
+    ) -> bool:
+        if float(proposed["rating"]) < MIN_RATING:
+            if verbose:
+                print(f"Rating is too low: {proposed['rating']}")
+            return False
+
+        if int(proposed["userRatingCount"]) < MIN_RATING_COUNT:
+            if verbose:
+                print(f"Rating count is too low: {proposed['userRatingCount']}")
+            return False
+
+        if proposed["businessStatus"] != "OPERATIONAL":
+            if verbose:
+                print(f"Business status is not operational: {proposed['businessStatus']}")
+            return False
+
+        if proposed.get("primaryType") not in original.get("types", []):
+            if verbose:
+                print(
+                    f"Primary type {proposed.get('primaryType')} "
+                    f"is not in original types {original.get('types', [])}"
+                )
+            return False
+
+        if proposed.get("id") == original.get("id"):
+            if verbose:
+                print(f"ID is the same: {proposed.get('id')}")
+            return False
+
+        return True
 
     @staticmethod
     def call_api(gmap_func: T.Callable, *args: T.Any, **kwargs: T.Any) -> T.Any:
@@ -57,70 +83,82 @@ class SearchPlaces:
 
     @staticmethod
     def _get_place_details(
-        gmaps: googlemaps.Client,
-        location_name: str,
-        location_description: T.Optional[str],
-        city_coordinates: Coordinates,
+        api_key: str,
+        itinerary_info: T.Tuple[str, str, str],
+        city_name: str,
         radius_meters: int,
         itinerary_place_details: ItineraryPlaceDetailsType,
         nearby_place_details: NearbyPlaceDetailsType,
         lock: threading.Lock,
-    ) -> int:
-        total_api_calls = 0
-        result = SearchPlaces.call_api(gmaps.places, query=location_name, location=city_coordinates)
+        verbose: bool = False,
+    ) -> T.Dict[str, int]:
+        total_api_calls = {
+            "places": 0,
+            "maps": 0,
+        }
 
-        total_api_calls += 1
+        location_name, description, activity_type = itinerary_info
 
-        if not result:
+        for query in [
+            f"{location_name} in {city_name}",
+            f"{activity_type} at {description} in {city_name}",
+        ]:
+            gplaces = GooglePlacesAPI(api_key, verbose=True)
+            result = gplaces.text_search(
+                query=query,
+                fields=DEFAULT_FIELDS,
+                data={
+                    "minRating": MIN_RATING,
+                },
+            )
+
+            total_api_calls["places"] += 1
+
+            if result and len(result.get("places", [])) > 0:
+                break
+
+        if not result or len(result.get("places", [])) == 0:
             print(f"No places found for {location_name}")
-            return total_api_calls
 
-        place_result = result.get("results")[0]
-
-        # Now get the detailed information for the place
-        result = SearchPlaces.call_api(
-            gmaps.place, place_id=place_result["place_id"], fields=DEFAULT_FIELDS
-        )
-        total_api_calls += 1
-
-        if not result:
-            print(f"Unable to get detailed info for {location_name}")
-            return total_api_calls
+        place_result = result["places"][0]
+        print(place_result)
 
         with lock:
-            itinerary_place_details.append((location_name, result["results"]))
+            itinerary_place_details.append((location_name, place_result))
 
-        store_type = place_result.get("types", [DEFAULT_TYPE])[0]
-        keyword = location_description if location_description else None
-
+        store_types = place_result.get("types", None)
         print(
             f"Getting nearby places for {location_name} at "
-            f"{place_result['geometry']['location']} with "
-            f"type {store_type} and description {location_description}"
+            f"{place_result['location']} with types {store_types}"
         )
 
-        nearby_places = SearchPlaces.call_api(
-            gmaps.places_nearby,
-            location=place_result["geometry"]["location"],
-            radius=radius_meters,
-            keyword=keyword,
-            type=store_type,
-            rank_by="prominence",
+        nearby_places = gplaces.search_location_radius(
+            latitude=place_result["location"]["latitude"],
+            longitude=place_result["location"]["longitude"],
+            radius_meters=radius_meters,
+            query=f"{location_name}",
+            fields=DEFAULT_FIELDS,
+            data={
+                "minRating": MIN_RATING,
+            },
         )
-        total_api_calls += 1
+        total_api_calls["places"] += 1
 
-        if not nearby_places:
+        if not nearby_places or len(nearby_places.get("places", [])) == 0:
             print(f"Unable to get nearby places for {location_name}")
             return total_api_calls
 
-        for nearby_result in nearby_places["results"]:
-            if not SearchPlaces.is_acceptable_location(nearby_result, place_result):
+        nearby_place_details[location_name] = []
+        for nearby_result in nearby_places["places"]:
+            print(nearby_result)
+            if not SearchPlaces.is_acceptable_location(
+                place_result, nearby_result, verbose=verbose
+            ):
+                print(f"Skipping {nearby_result['displayName']['text']} as it is not acceptable")
                 continue
 
             with lock:
-                nearby_place_details[location_name] = nearby_place_details.get(
-                    location_name, []
-                ) + [nearby_result]
+                nearby_place_details[location_name].append(nearby_result)
 
         print(f"Found {len(nearby_place_details[location_name])} nearby places for {location_name}")
 
@@ -145,29 +183,42 @@ class SearchPlaces:
 
         print(f"{city} coordinates: {city_coordinates}")
 
-        self.total_api_calls = 0
+        self.total_api_calls = {
+            "places": 0,
+            "maps": 0,
+        }
 
         if single_thread:
             for index in range(len(itinerary[LOCATION_COLUMN])):
-                self.total_api_calls += self._get_place_details(
-                    self.gmaps,
+                itinerary_info = (
                     itinerary[LOCATION_COLUMN][index],
-                    None,
-                    city_coordinates,
+                    itinerary[DESCRIPTION_COLUMN][index],
+                    itinerary[ACTIVITY_TYPE_COLUMN][index],
+                )
+                api_calls = self._get_place_details(
+                    self.api_key,
+                    itinerary_info,
+                    city,
                     radius_meters,
                     self.itinerary_place_details,
                     self.nearby_place_details,
                     self.lock,
+                    verbose=self.verbose,
                 )
+                for key, value in api_calls.items():
+                    self.total_api_calls[key] += value
         else:
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 futures = [
                     executor.submit(
                         self._get_place_details,
-                        self.gmaps,
-                        itinerary[LOCATION_COLUMN][index],
-                        None,
-                        city_coordinates,
+                        self.api_key,
+                        (
+                            itinerary[LOCATION_COLUMN][index],
+                            itinerary[DESCRIPTION_COLUMN][index],
+                            itinerary[ACTIVITY_TYPE_COLUMN][index],
+                        ),
+                        city,
                         radius_meters,
                         self.itinerary_place_details,
                         self.nearby_place_details,
@@ -178,11 +229,12 @@ class SearchPlaces:
                 concurrent.futures.wait(futures)
 
                 for future in futures:
-                    self.total_api_calls += future.result()
+                    for key, value in future.result().items():
+                        self.total_api_calls[key] += value
 
         return (
             self.itinerary_place_details,
             self.nearby_place_details,
             city_coordinates,
-            self.total_api_calls,
+            sum(self.total_api_calls.values()),
         )

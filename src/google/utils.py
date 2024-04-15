@@ -62,6 +62,14 @@ class SearchGrid(T.TypedDict):
     width_meters: float
 
 
+def meters_to_miles(meters: float) -> float:
+    return meters / METERS_PER_MILE
+
+
+def miles_to_meters(miles: float) -> float:
+    return miles * METERS_PER_MILE
+
+
 def extract_city(address: str) -> T.Optional[str]:
     """
     Given an address, extract the city from it.

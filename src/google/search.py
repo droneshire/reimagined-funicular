@@ -25,11 +25,13 @@ class SearchPlaces:
         self.lock = Lock()
 
     @staticmethod
-    def is_acceptable_location(details: T.Dict[str, T.Any]) -> bool:
+    def is_acceptable_location(original: T.Dict[str, T.Any], details: T.Dict[str, T.Any]) -> bool:
         return (
             float(details["rating"]) > MIN_RATING
             and int(details["user_ratings_total"]) > MIN_RATING_COUNT
             and details["business_status"] == "OPERATIONAL"
+            and details.get("types", ["New"])[0] == original.get("types", ["Original"])[0]
+            and details.get("place_id") != original.get("place_id")
         )
 
     @staticmethod
@@ -49,7 +51,7 @@ class SearchPlaces:
             print(f"Unable to get places info for {location_name}: {exc}")
             return
 
-        if not result or result.get("status") != "OK":
+        if not result or result.get("status") != "OK" or not result.get("results"):
             if not result:
                 print(f"Unable to get places info for {location_name}")
             else:
@@ -58,7 +60,12 @@ class SearchPlaces:
                 )
             return
 
-        place_result = result["results"][0]
+        place_result = result.get("results")[0]
+
+        if not place_result:
+            print(f"No places found for {location_name}")
+            return
+
         with lock:
             itinerary_place_details.append((location_name, result["results"]))
 
@@ -87,10 +94,7 @@ class SearchPlaces:
             return
 
         for nearby_result in nearby_places["results"]:
-            if nearby_result["place_id"] == place_result["place_id"]:
-                continue
-
-            if not SearchPlaces.is_acceptable_location(nearby_result):
+            if not SearchPlaces.is_acceptable_location(nearby_result, place_result):
                 continue
 
             with lock:
@@ -105,7 +109,6 @@ class SearchPlaces:
         city: str,
         itinerary: T.Dict[str, T.List[str]],
         radius_meters: int = 1500,
-        write_to_file: bool = False,
     ) -> T.Tuple[
         ItineraryPlaceDetailsType,
         NearbyPlaceDetailsType,
@@ -134,13 +137,5 @@ class SearchPlaces:
                 for index in range(len(itinerary[LOCATION_COLUMN]))
             ]
             concurrent.futures.wait(futures)
-
-        if write_to_file:
-            with open("places.json", "w", encoding="utf-8") as outfile:
-                json.dump(
-                    {"results": self.itinerary_place_details}, outfile, ensure_ascii=True, indent=4
-                )
-            with open("nearby_places.json", "w", encoding="utf-8") as outfile:
-                json.dump(self.nearby_place_details, outfile, ensure_ascii=True, indent=4)
 
         return self.itinerary_place_details, self.nearby_place_details, city_coordinates

@@ -13,3 +13,6 @@ DEFAULT_FIELDS = [
     "places.editorialSummary",
     "places.goodForChildren",
 ]
+
+MIN_RATING = 3.5
+MIN_RATING_COUNT = 100

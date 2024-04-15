@@ -5,11 +5,10 @@ import typing as T
 from threading import Lock
 
 import googlemaps
-import pandas as pd
 
-from constants import DEFAULT_FIELDS
-from google.utils import DEFAULT_TYPE, TYPES, Coordinates, get_city_center_coordinates
-from llm.defs import DESCRIPTION_COLUMN, LOCATION_COLUMN
+from constants import DEFAULT_FIELDS, MIN_RATING, MIN_RATING_COUNT
+from google.utils import DEFAULT_TYPE, Coordinates, get_city_center_coordinates
+from llm.defs import LOCATION_COLUMN
 
 ItineraryPlaceDetailsType = T.List[T.Tuple[str, T.Dict[str, T.List[T.Any]]]]
 NearbyPlaceDetailsType = T.Dict[str, T.List[T.Dict[str, T.Any]]]
@@ -26,12 +25,19 @@ class SearchPlaces:
         self.lock = Lock()
 
     @staticmethod
+    def is_acceptable_location(details: T.Dict[str, T.Any]) -> bool:
+        return (
+            float(details["rating"]) > MIN_RATING
+            and int(details["user_ratings_total"]) > MIN_RATING_COUNT
+            and details["business_status"] == "OPERATIONAL"
+        )
+
+    @staticmethod
     def _get_place_details(
         gmaps: googlemaps.Client,
         location_name: str,
-        location_description: str,
+        location_description: T.Optional[str],
         city_coordinates: Coordinates,
-        store_type: T.Optional[str],
         radius_meters: int,
         itinerary_place_details: ItineraryPlaceDetailsType,
         nearby_place_details: NearbyPlaceDetailsType,
@@ -39,50 +45,65 @@ class SearchPlaces:
     ) -> None:
         try:
             result = gmaps.places(query=location_name, location=city_coordinates)
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-except
             print(f"Unable to get places info for {location_name}: {exc}")
             return
 
         if not result or result.get("status") != "OK":
-            print(f"Unable to get places info for {location_name}")
+            if not result:
+                print(f"Unable to get places info for {location_name}")
+            else:
+                print(
+                    f"Unable to get places info for {location_name}, status: {result.get('status')}"
+                )
             return
 
         place_result = result["results"][0]
         with lock:
             itinerary_place_details.append((location_name, result["results"]))
 
-        store_type = store_type if store_type else place_result.get("types", [DEFAULT_TYPE])[0]
+        store_type = place_result.get("types", [DEFAULT_TYPE])[0]
+        keyword = location_description if location_description else None
 
         print(
             f"Getting nearby places for {location_name} at "
-            f"{place_result['geometry']['location']}"
+            f"{place_result['geometry']['location']} with "
+            f"type {store_type} and description {location_description}"
         )
         try:
             nearby_places = gmaps.places_nearby(
                 location=place_result["geometry"]["location"],
                 radius=radius_meters,
-                keyword=location_description if location_description else None,
+                keyword=keyword,
                 type=store_type,
                 rank_by="prominence",
             )
-        except:  # pylint: disable=bare-except
-            print(f"Unable to get nearby places info for {location_name}")
+        except Exception as exc:  # pylint: disable=broad-except
+            print(f"Unable to get nearby places info for {location_name}: {exc}")
             return
 
         if not nearby_places or nearby_places.get("status") != "OK":
             print(f"Unable to get nearby places info for {location_name}")
             return
 
-        with lock:
-            nearby_place_details[location_name] = nearby_places["results"]
+        for nearby_result in nearby_places["results"]:
+            if nearby_result["place_id"] == place_result["place_id"]:
+                continue
 
-        print(f"Found {len(nearby_places['results'])} nearby places for {location_name}")
+            if not SearchPlaces.is_acceptable_location(nearby_result):
+                continue
+
+            with lock:
+                nearby_place_details[location_name] = nearby_place_details.get(
+                    location_name, []
+                ) + [nearby_result]
+
+        print(f"Found {len(nearby_place_details[location_name])} nearby places for {location_name}")
 
     def search(
         self,
         city: str,
         itinerary: T.Dict[str, T.List[str]],
-        store_type: T.Optional[str] = None,
         radius_meters: int = 1500,
         write_to_file: bool = False,
     ) -> T.Tuple[
@@ -97,20 +118,14 @@ class SearchPlaces:
 
         print(f"{city} coordinates: {city_coordinates}")
 
-        if store_type:
-            assert (
-                store_type in TYPES
-            ), f"Invalid store type: {store_type}, must be one of {','.join(TYPES)}"
-
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = [
                 executor.submit(
                     self._get_place_details,
                     self.gmaps,
                     itinerary[LOCATION_COLUMN][index],
-                    itinerary[DESCRIPTION_COLUMN][index],
+                    None,
                     city_coordinates,
-                    store_type,
                     radius_meters,
                     self.itinerary_place_details,
                     self.nearby_place_details,

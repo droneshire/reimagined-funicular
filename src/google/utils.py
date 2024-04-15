@@ -47,8 +47,8 @@ DEFAULT_TYPE = TYPES[0]
 
 
 class Coordinates(T.TypedDict):
-    latitude: float
-    longitude: float
+    lat: float
+    lng: float
 
 
 class Viewport(T.TypedDict):
@@ -100,7 +100,7 @@ def extract_city(address: str) -> T.Optional[str]:
     return city
 
 
-def get_city_center_coordinates(city_name: str) -> T.Optional[T.Tuple[float, float]]:
+def get_city_center_coordinates(city_name: str) -> T.Optional[Coordinates]:
     # Initialize the Nominatim geocoder
     geolocator = Nominatim(user_agent="tgtg")
 
@@ -110,4 +110,4 @@ def get_city_center_coordinates(city_name: str) -> T.Optional[T.Tuple[float, flo
     if not location:
         return None
 
-    return (location.latitude, location.longitude)
+    return Coordinates(lat=location.latitude, lng=location.longitude)

@@ -7,8 +7,14 @@ import googlemaps
 
 from constants import DEFAULT_FIELDS, MIN_RATING, MIN_RATING_COUNT
 from google.places_api import GooglePlacesAPI
-from google.utils import Coordinates, get_city_center_coordinates
-from llm.defs import LOCATION_COLUMN, DESCRIPTION_COLUMN, ACTIVITY_TYPE_COLUMN
+from google.utils import (
+    DEFAULT_TYPE,
+    TABLE_A_TYPES,
+    TYPES,
+    Coordinates,
+    get_city_center_coordinates,
+)
+from llm.defs import ACTIVITY_TYPE_COLUMN, DESCRIPTION_COLUMN, LOCATION_COLUMN
 
 ItineraryPlaceDetailsType = T.List[T.Tuple[str, T.Dict[str, T.List[T.Any]]]]
 NearbyPlaceDetailsType = T.Dict[str, T.List[T.Dict[str, T.Any]]]
@@ -18,7 +24,6 @@ class SearchPlaces:
 
     def __init__(self, api_key: str, verbose: bool = False):
         self.api_key = api_key
-        self.gmaps_lib = googlemaps.Client(key=api_key)
         self.verbose = verbose
         self.itinerary_place_details: ItineraryPlaceDetailsType = []
         self.nearby_place_details: NearbyPlaceDetailsType = {}
@@ -31,24 +36,29 @@ class SearchPlaces:
 
     @staticmethod
     def is_acceptable_location(
-        original: T.Dict[str, T.Any], proposed: T.Dict[str, T.Any], verbose: bool = False
+        original: T.Dict[str, T.Any],
+        proposed: T.Dict[str, T.Any],
+        compare_types: bool = False,
+        verbose: bool = False,
     ) -> bool:
-        if float(proposed["rating"]) < MIN_RATING:
+        rating = proposed.get("rating", 0.0)
+        if float(rating) < MIN_RATING:
             if verbose:
-                print(f"Rating is too low: {proposed['rating']}")
+                print(f"Rating is too low: {rating}")
             return False
 
-        if int(proposed["userRatingCount"]) < MIN_RATING_COUNT:
+        rating_count = proposed.get("userRatingCount", 0)
+        if int(rating_count) < MIN_RATING_COUNT:
             if verbose:
-                print(f"Rating count is too low: {proposed['userRatingCount']}")
+                print(f"Rating count is too low: {rating_count}")
             return False
 
-        if proposed["businessStatus"] != "OPERATIONAL":
+        if proposed.get("businessStatus") != "OPERATIONAL":
             if verbose:
-                print(f"Business status is not operational: {proposed['businessStatus']}")
+                print(f"Business status is not operational: {proposed.get('businessStatus')}")
             return False
 
-        if proposed.get("primaryType") not in original.get("types", []):
+        if compare_types and proposed.get("primaryType") not in original.get("types", []):
             if verbose:
                 print(
                     f"Primary type {proposed.get('primaryType')} "
@@ -103,7 +113,7 @@ class SearchPlaces:
             f"{location_name} in {city_name}",
             f"{activity_type} at {description} in {city_name}",
         ]:
-            gplaces = GooglePlacesAPI(api_key, verbose=True)
+            gplaces = GooglePlacesAPI(api_key, verbose=False)
             result = gplaces.text_search(
                 query=query,
                 fields=DEFAULT_FIELDS,
@@ -126,23 +136,30 @@ class SearchPlaces:
         with lock:
             itinerary_place_details.append((location_name, place_result))
 
-        store_types = place_result.get("types", None)
+        store_types = [t for t in place_result.get("types", [DEFAULT_TYPE]) if t in TABLE_A_TYPES]
+
         print(
             f"Getting nearby places for {location_name} at "
             f"{place_result['location']} with types {store_types}"
         )
 
-        nearby_places = gplaces.search_location_radius(
+        data = {
+            "minRating": MIN_RATING,
+        }
+
+        if store_types:
+            data["includedTypes"] = store_types
+
+        nearby_places = gplaces.nearby_places(
             latitude=place_result["location"]["latitude"],
             longitude=place_result["location"]["longitude"],
             radius_meters=radius_meters,
-            query=f"{location_name}",
             fields=DEFAULT_FIELDS,
-            data={
-                "minRating": MIN_RATING,
-            },
+            data=data,
         )
         total_api_calls["places"] += 1
+
+        print(nearby_places)
 
         if not nearby_places or len(nearby_places.get("places", [])) == 0:
             print(f"Unable to get nearby places for {location_name}")
@@ -159,6 +176,12 @@ class SearchPlaces:
 
             with lock:
                 nearby_place_details[location_name].append(nearby_result)
+
+        nearby_place_details[location_name].sort(key=lambda x: x.get("primaryType", ""))
+        for nearby_result in nearby_place_details[location_name]:
+            if nearby_result.get("primaryType") == place_result.get("primaryType"):
+                nearby_place_details[location_name].remove(nearby_result)
+                nearby_place_details[location_name].insert(0, nearby_result)
 
         print(f"Found {len(nearby_place_details[location_name])} nearby places for {location_name}")
 

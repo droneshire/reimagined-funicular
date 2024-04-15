@@ -189,6 +189,8 @@ class GooglePlacesAPI:
                 f"Searching for nearby places to {latitude}, {longitude} "
                 f"within {radius_meters} meters"
             )
+        if self.verbose:
+            print(f"{json.dumps(json_data, indent=2)}")
 
         return call_api(url, json_data=json_data, headers=headers)
 

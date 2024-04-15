@@ -178,8 +178,9 @@ class SearchPlaces:
                 nearby_place_details[location_name].append(nearby_result)
 
         nearby_place_details[location_name].sort(key=lambda x: x.get("primaryType", ""))
-        for nearby_result in nearby_place_details[location_name]:
-            if nearby_result.get("primaryType") == place_result.get("primaryType"):
+        nearby_list = nearby_place_details[location_name]
+        for item in nearby_list:
+            if item.get("primaryType") == place_result.get("primaryType"):
                 nearby_place_details[location_name].remove(nearby_result)
                 nearby_place_details[location_name].insert(0, nearby_result)
 

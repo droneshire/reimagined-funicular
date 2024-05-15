@@ -22,7 +22,7 @@ class Itinerary:
         self.group_type = group_type
         self.description = description
 
-    def parse_itenerary_day(self, lines: T.List[str]) -> T.List[T.Tuple[str, str]]:
+    def parse_itinerary_day(self, lines: T.List[str]) -> T.List[T.Tuple[str, str]]:
         day_plan = []
         # This pattern is designed to capture two groups separated by various delimiters
         pattern = re.compile(r"\-?\s*([\w\s]+?)\s*(?::|at|-)\s*([\w\s'&]+)")
@@ -46,7 +46,7 @@ class Itinerary:
         for day in days:
             lines = day.split("\n")
             day_number = lines[0].split(" ")[1]
-            day_plan = self.parse_itenerary_day(lines[1:])
+            day_plan = self.parse_itinerary_day(lines[1:])
             for activity_type, place in day_plan:
                 data.append(
                     {

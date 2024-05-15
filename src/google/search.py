@@ -131,7 +131,6 @@ class SearchPlaces:
             print(f"No places found for {location_name}")
 
         place_result = result["places"][0]
-        print(place_result)
 
         with lock:
             itinerary_place_details.append((location_name, place_result))
@@ -159,15 +158,12 @@ class SearchPlaces:
         )
         total_api_calls["places"] += 1
 
-        print(nearby_places)
-
         if not nearby_places or len(nearby_places.get("places", [])) == 0:
             print(f"Unable to get nearby places for {location_name}")
             return total_api_calls
 
         nearby_place_details[location_name] = []
         for nearby_result in nearby_places["places"]:
-            print(nearby_result)
             if not SearchPlaces.is_acceptable_location(
                 place_result, nearby_result, verbose=verbose
             ):
@@ -177,12 +173,20 @@ class SearchPlaces:
             with lock:
                 nearby_place_details[location_name].append(nearby_result)
 
-        nearby_place_details[location_name].sort(key=lambda x: x.get("primaryType", ""))
         nearby_list = nearby_place_details[location_name]
-        for item in nearby_list:
-            if item.get("primaryType") == place_result.get("primaryType"):
-                nearby_place_details[location_name].remove(nearby_result)
-                nearby_place_details[location_name].insert(0, nearby_result)
+
+        primary_type = place_result.get("primaryType")
+
+        sorted_nearby_list = [
+            item for item in nearby_list if item.get("primaryType") == primary_type
+        ] + [item for item in nearby_list if item.get("primaryType") != primary_type]
+
+        nearby_place_details[location_name] = sorted_nearby_list
+
+        print(
+            (i["description"]["text"], i["primaryType"])
+            for i in nearby_place_details[location_name]
+        )
 
         print(f"Found {len(nearby_place_details[location_name])} nearby places for {location_name}")
 

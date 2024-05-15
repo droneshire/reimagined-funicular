@@ -2,9 +2,9 @@ import typing as T
 
 from langchain.output_parsers.openai_functions import JsonOutputFunctionsParser
 from langchain.prompts import PromptTemplate
-from langchain_community.utils.openai_functions import convert_pydantic_to_openai_function
 from langchain_core.pydantic_v1 import BaseModel
 from langchain_openai import ChatOpenAI
+from langchain_core.utils.function_calling import convert_to_openai_function
 from pydantic.v1.types import SecretStr
 
 from llm.utils import calculate_tokens
@@ -26,7 +26,7 @@ class OpenAiSearch:
     ) -> T.Any:
         model = ChatOpenAI(api_key=self.api_key, temperature=0, model=self.MODEL)
 
-        openai_functions = [convert_pydantic_to_openai_function(model_function)]
+        openai_functions = [convert_to_openai_function(model_function)]
 
         chain = prompt | model.bind(functions=openai_functions) | self.parser
         output = chain.invoke(inputs)

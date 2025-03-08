@@ -37,7 +37,7 @@ This is used as a trick to hone in on the place specified by the GPT query. This
 
 > `url = https://places.googleapis.com/v1/places:searchText`
 
-> `headers = {'Content-Type': 'application/json', 'X-Goog-Api-Key': 'AIzaSyC721JnEgqgQ6Sanz27wOeTtO_eETybSRs', 'X-Goog-FieldMask': 'places.id,places.formattedAddress,places.displayName,places.location,places.rating,places.googleMapsUri,places.websiteUri,places.businessStatus,places.priceLevel,places.userRatingCount,places.primaryType,places.types,places.editorialSummary,places.goodForChildren'} `
+> `headers = {'Content-Type': 'application/json', 'X-Goog-Api-Key': '', 'X-Goog-FieldMask': 'places.id,places.formattedAddress,places.displayName,places.location,places.rating,places.googleMapsUri,places.websiteUri,places.businessStatus,places.priceLevel,places.userRatingCount,places.primaryType,places.types,places.editorialSummary,places.goodForChildren'} `
 
 > `data = {'textQuery': 'The Local House in South Beach Miami, FL', 'minRating': 3.5}`
 
@@ -53,7 +53,7 @@ Detailed info for the fields specified
 
 > `url = https://places.googleapis.com/v1/places:searchNearby`
 
-> `headers = {'Content-Type': 'application/json', 'X-Goog-Api-Key': 'AIzaSyC721JnEgqgQ6Sanz27wOeTtO_eETybSRs', 'X-Goog-FieldMask': 'places.id,places.formattedAddress,places.displayName,places.location,places.rating,places.googleMapsUri,places.websiteUri,places.businessStatus,places.priceLevel,places.userRatingCount,places.primaryType,places.types,places.editorialSummary,places.goodForChildren'}`
+> `headers = {'Content-Type': 'application/json', 'X-Goog-Api-Key': '', 'X-Goog-FieldMask': 'places.id,places.formattedAddress,places.displayName,places.location,places.rating,places.googleMapsUri,places.websiteUri,places.businessStatus,places.priceLevel,places.userRatingCount,places.primaryType,places.types,places.editorialSummary,places.goodForChildren'}`
 
 > `params = {}`
 
